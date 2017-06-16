@@ -7,8 +7,6 @@ using System.Windows.Forms;
 using System.Threading;
 using System.Diagnostics;
 using System.Drawing.Imaging;
-using System.Net.Sockets;
-using System.IO;
 /**
 * You´re supposed to make some comments! Otherwise I´m going to kill you! :) 
 * 
@@ -33,12 +31,9 @@ namespace RealSense
         public int save = 0, debug_y = 0;
         private Button enableOutput = new Button();
         private Button enableImage = new Button();
-        private Button sendFaceButton = new Button();
         private bool outputEnabled, imageEnabled = true, resetModules = false;
         private bool testMode, blur = true;
         Bitmap uiBitmap, windowBitmap, smallWindowBitmap, warningBitmap;
-
-        private bool sendFace = false;
 
 
         static int xgap = (int)(75 * 5);
@@ -65,19 +60,12 @@ namespace RealSense
         int calibRadius = 300;
 
         private Pen linePen = new Pen(new SolidBrush(Color.Gray));
-        string ip;
-        int port;
-        TcpClient client;
 
         /**
          * Initialise View and start updater Thread
          */
         public CameraView(Model model, bool test)
         {
-            port = int.Parse(Microsoft.VisualBasic.Interaction.InputBox("Gib mal Port", "Ey", "Default", -1, -1));
-            ip = Microsoft.VisualBasic.Interaction.InputBox("Gib mal IP", "Ey", "Default", -1, -1);
-
-
             KeyPreview = true;
 
             outputEnabled = test;
@@ -117,15 +105,7 @@ namespace RealSense
                     });
                 AddComponent(enableOutput);
 
-                sendFaceButton.Click +=
-                    new System.EventHandler(delegate
-                    {
-                        sendFace = true;
-                    });
-
                 enableImage.Bounds = new Rectangle(20, 1110, 500, 30);
-                sendFaceButton.Text = "Analyze";
-                sendFaceButton.Bounds = new Rectangle(520, 1110, 500, 30);
                 enableImage.Text = "NoImg";
                 enableImage.Click +=
                     new System.EventHandler(delegate
@@ -133,7 +113,6 @@ namespace RealSense
                         imageEnabled = !imageEnabled;
                     });
                 AddComponent(enableImage);
-                AddComponent(sendFaceButton);
             }
             else
             {
@@ -152,18 +131,6 @@ namespace RealSense
             // Start Updater Thread
             updaterThread = new Thread(this.update);
             updaterThread.Start();
-
-            ///////
-            return;
-
-            string[] fileEntries = Directory.GetFiles(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + "\\Recordings");
-            foreach (string fileName in fileEntries)
-            {
-                Console.WriteLine("Converting " + fileName); 
-                FaceRecording r = FaceRecording.load(fileName);
-                r.exportCSV();
-            }
-
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
@@ -248,7 +215,6 @@ namespace RealSense
             }
         }
         int subject = 0;
-        bool recSet = false;
         /**
          * Update the View
          */
@@ -259,14 +225,6 @@ namespace RealSense
             {
                 if (model.SenseManager.AcquireFrame(true) >= pxcmStatus.PXCM_STATUS_NO_ERROR) // Dauert manchmal voll lange ...
                 {
-
-                    if (model.NullFace != null && !recSet)
-                    {
-                        FaceRecorder rec = (FaceRecorder)model.Modules.ElementAt(0);
-                        rec.CurrentRecording().setNullData(model.NullFace);
-                        recSet = true;
-                    }
-
                     debug_y = 0;
                     // <magic>
                     PXCMCapture.Sample sample = model.SenseManager.QueryFaceSample();
@@ -402,10 +360,7 @@ namespace RealSense
                                 gr.FillEllipse(sb, new Rectangle((int)sPoint.image.x - rad, (int)sPoint.image.y - rad, rad * 4, rad * 4));
                                 FriggnAweseomeGraphix.drawMEMontior(gr, calibMonitor);
                             }
-                            else
-                            {
-                                calibMonitor.currentValue = 0;
-                            }
+                            else calibMonitor.currentValue = 0;
                             if (model.CurrentPoseDiff > model.PoseMax && model.calibrationProgress == 100)
                             {
                                 warningPopupX += (warningPopupSlideX - warningPopupX) / 3;
@@ -460,30 +415,6 @@ namespace RealSense
                     model.SenseManager.ReleaseFrame();
                     model.FaceData.Dispose(); // DONE!
                     sample.color.ReleaseAccess(colorData);
-
-                    if (sendFace)
-                    {
-                        client = new TcpClient(ip, port);
-                        sendFace = false;
-                        var stream = client.GetStream();
-                        FaceRecorder rec = (FaceRecorder)model.Modules.ElementAt(0);
-                        string data = rec.CurrentRecording().currentFaceCSV(model.CurrentFace) + "#\n";
-                        byte[] toSend = ASCIIEncoding.ASCII.GetBytes(data);
-                        Console.WriteLine("sending");
-                        stream.Write(toSend, 0, toSend.Length);
-
-
-                        StreamReader reader = new StreamReader(stream, Encoding.UTF8);
-
-                        //byte[] toRead = new byte[client.ReceiveBufferSize];
-                        string result = reader.ReadLine();
-
-                        //  string result = ASCIIEncoding.ASCII.GetString(toRead);
-                        //Console.WriteLine("##############\t" + result);
-                        MessageBox.Show("Emotion: " + result, "herpy-de-derpy");
-                        client.Close();
-                    }
-
                     if (xP < targetX && uiSlide)
                     {
                         xP += (targetX - xP) / 8;
@@ -501,8 +432,6 @@ namespace RealSense
                 }
             }
         }
-
-
         private void InitializeComponent()
         {
             this.SuspendLayout();

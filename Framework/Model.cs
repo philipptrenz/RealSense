@@ -45,8 +45,6 @@ namespace RealSense
         private double currentPoseDiff = 0, yawDiff = 0, rollDiff = 0, pitchDiff = 0;
         private bool test = false;
 
-        public string currentMessage = "";
-
         public double calibrationProgress = 0;
 
         private CameraView view;
