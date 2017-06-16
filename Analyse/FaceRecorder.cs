@@ -15,12 +15,14 @@ namespace RealSense
         private FaceRecording currentRecording = null;
         private static int numLandmarkPoints = 78, framesStored = 300;
         private PXCMFaceData.LandmarkPoint[][] data = new PXCMFaceData.LandmarkPoint[framesStored][]; // 300 Frames (10 seconds), each 78 LPs
+        private PXCMFaceData.LandmarkPoint[] recentFace; // 300 Frames (10 seconds), each 78 LPs
         private bool recording = false;
         private int frameIndex = 0;
         private string[] typeNames = new string[] { "anger", "joy", "fear", "contempt", "sadness", "disgust", "surprise" };
 
         public FaceRecorder()
         {
+            currentRecording = new FaceRecording("derp");
             // anger, joy, fear, contempt, sadness, disgust, surprise, stop
             triggers = new int[] { (int)Keys.D1, (int)Keys.D2, (int)Keys.D3, (int)Keys.D4, (int)Keys.D5, (int)Keys.D6, (int)Keys.D7, (int)Keys.D8 }; // record 7 emotions + stop recording
             debug = true;
@@ -72,6 +74,9 @@ namespace RealSense
         {
             get { return recording; }
         }
+
+        public FaceRecording CurrentRecording()
+        { return currentRecording; }
 
         public int RecordingIndex
         {
