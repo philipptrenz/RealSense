@@ -159,7 +159,7 @@ namespace RealSense
             string[] fileEntries = Directory.GetFiles(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + "\\Recordings");
             foreach (string fileName in fileEntries)
             {
-                Console.WriteLine("Converting " + fileName);
+                Console.WriteLine("Converting " + fileName); 
                 FaceRecording r = FaceRecording.load(fileName);
                 r.exportCSV();
             }
